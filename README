@@ -1,0 +1,10 @@
+A refactor-enabling tool for go, in go.
+
+This won't rewrite your files (yet). Since I write in Vim, I'd like to have a
+more modular tool which will tell me where to change what. Then I can pipe this
+through another tool (ed, awk, Vim, whatever).
+
+We're starting with Rename Symbol. Hopefully, we'll have ExtractVariable and
+ExtractMethod soon thereafter. Then IntroduceParameter, and ChangeSignature.
+
+That's probably 95% of what I use on a regular basis.
