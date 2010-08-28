@@ -29,9 +29,9 @@ func RefactorSource(src string) *Refactor{
 	return refactor
 }
 
-func (src *Refactor) GetVariableNameAt(position int) (symbolName string) {
+func (src *Refactor) GetVariableNameAt(row, column int) (symbolName string) {
 	for _, v := range src.scope.Objects {
-		if v.Pos.Column <= position && v.Pos.Column + len(v.Name) > position {
+		if v.Pos.Column <= column && v.Pos.Column + len(v.Name) > column {
 			return v.Name
 		}
 	}

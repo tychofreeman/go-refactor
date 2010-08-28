@@ -6,34 +6,30 @@ import (
 
 const (
 	SIMPLE_DECL = "var myString = \"Hello World\";"
-	VAR_NAME = "myString"
+	TWO_LINE_DECL = "var otherString = \"other string\";\nvar myString = \"Hello World\";"
+	TARGET_VAR_NAME = "myString"
+	VAR_DECL_START_LINE = 2
 	VAR_DECL_START_POS = 5
 )
 
-func CallGetVariableNameAt(pos int) string {
-	src := RefactorSource(SIMPLE_DECL)
-
-	return src.GetVariableNameAt(pos);
-}
-
 func TestFindsNameOfVariableDeclStartingAtPosition(t *testing.T) {
-	varName := CallGetVariableNameAt(VAR_DECL_START_POS)
+	varName := CallGetVariableNameAt(1, VAR_DECL_START_POS)
 
-	if varName != VAR_NAME {
+	if varName != TARGET_VAR_NAME {
 		t.Fail()
 	}
 }
 
 func TestFindsNameOfVariableDeclContainingPosition(t *testing.T) {
-	varName := CallGetVariableNameAt(VAR_DECL_START_POS);
+	varName := CallGetVariableNameAt(1, VAR_DECL_START_POS);
 
-	if varName != VAR_NAME {
+	if varName != TARGET_VAR_NAME {
 		t.Fail()
 	}
 }
 
 func TestDoesntFindNameOfVariableDeclAfterPosition(t *testing.T) {
-	varName := CallGetVariableNameAt(VAR_DECL_START_POS - 2)
+	varName := CallGetVariableNameAt(1, VAR_DECL_START_POS - 2)
 	if varName != "" {
 		t.Fail()
 	}
