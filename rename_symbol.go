@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/ast"
+	"go/token"
 )
 
 type Refactor struct {
@@ -28,10 +29,25 @@ func RefactorSource(src string) *Refactor {
 func (src *Refactor) GetVariableNameAt(row, column int) string {
 	for varName, _ := range src.varSites.varSites {
 		for _, pos := range src.varSites.GetSites(varName) {
-			if pos.Line == row && pos.Column <= column && pos.Column + len(varName) > column {
+			if identContainsPosition(varName, pos, row, column) {
 				return varName
 			}
 		}
 	}
 	return ""
+}
+
+func (src *Refactor) PositionsForSymbolAt(row, column int) []token.Position {
+	for varName, _ := range src.varSites.varSites {
+		for _, pos := range src.varSites.GetSites(varName) {
+			if identContainsPosition(varName, pos, row, column) {
+				return src.varSites.GetSites(varName)
+			}
+		}
+	}
+	return nil
+}
+
+func identContainsPosition(varName string, identPosition token.Position, row, column int) bool {
+	return identPosition.Line == row && identPosition.Column <= column && identPosition.Column + len(varName) > column
 }
