@@ -17,3 +17,11 @@ func TestFindsNameOfVariableUseAtStartOfUse(t *testing.T) {
 		t.Errorf("Expected [%v], but got [%v]", TARGET_VAR_NAME, varName)
 	}
 }
+
+func TestFindsNameOfVariableUseIfNameContainsPosition(t *testing.T) {
+	varName := CallUsageGetVariableNameAt(TWO_LINE_VAR_DECL_START_LINE, VAR_USE_START_POS + 3)
+
+	if varName != TARGET_VAR_NAME {
+		t.Errorf("Expected [%v], but got [%v]", TARGET_VAR_NAME, varName)
+	}
+}
