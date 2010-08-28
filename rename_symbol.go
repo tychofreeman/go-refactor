@@ -31,7 +31,7 @@ func RefactorSource(src string) *Refactor{
 
 func (src *Refactor) GetVariableNameAt(row, column int) (symbolName string) {
 	for _, v := range src.scope.Objects {
-		if v.Pos.Column <= column && v.Pos.Column + len(v.Name) > column {
+		if v.Pos.Line == row && v.Pos.Column <= column && v.Pos.Column + len(v.Name) > column {
 			return v.Name
 		}
 	}
