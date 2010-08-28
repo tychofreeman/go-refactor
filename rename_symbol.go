@@ -7,33 +7,31 @@ import (
 )
 
 type Refactor struct {
-	//SymbolTable
-	stmts []ast.Decl
-	scope *ast.Scope
+	varSites *VarSites;
 }
 
-func RefactorSource(src string) *Refactor{
+func RefactorSource(src string) *Refactor {
 	refactor := new(Refactor)
-	refactor.scope = ast.NewScope(nil)
-	stmts, err := parser.ParseDeclList("", src, refactor.scope)
+	refactor.varSites = NewVarSites()
+	scope := ast.NewScope(nil)
+	stmts, err := parser.ParseDeclList("", src, scope)
 	if err != nil {
 		panic(fmt.Sprintf("Could not parse input. %v", err))
 	}
-	refactor.stmts = stmts
-	/*
-	visitor := newRefactorVisitor()
-	for _, stmt := range src.stmts {
+	visitor := newRefactorVisitor(refactor.varSites)
+	for _, stmt := range stmts {
 		ast.Walk(visitor, stmt)
 	}
-	*/
 	return refactor
 }
 
-func (src *Refactor) GetVariableNameAt(row, column int) (symbolName string) {
-	for _, v := range src.scope.Objects {
-		if v.Pos.Line == row && v.Pos.Column <= column && v.Pos.Column + len(v.Name) > column {
-			return v.Name
+func (src *Refactor) GetVariableNameAt(row, column int) string {
+	for varName, _ := range src.varSites.varSites {
+		for _, pos := range src.varSites.GetSites(varName) {
+			if pos.Line == row && pos.Column <= column && pos.Column + len(varName) > column {
+				return varName
+			}
 		}
 	}
-	return 
+	return ""
 }

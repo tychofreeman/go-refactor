@@ -7,8 +7,10 @@ import (
 const (
 	SIMPLE_DECL = "var myString = \"Hello World\";"
 	TWO_LINE_DECL = "var otherString = \"other string\";\nvar myString = \"Hello World\";"
+	DECL_AND_USE = "var myString = \"Hello World\"\nvar a = myString;";
 	TARGET_VAR_NAME = "myString"
-	VAR_DECL_START_LINE = 2
+	TWO_LINE_VAR_DECL_START_LINE = 2
+	VAR_USE_START_POS = 9
 	VAR_DECL_START_POS = 5
 )
 
