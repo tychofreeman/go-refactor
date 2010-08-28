@@ -23,26 +23,24 @@ func TestIdentifiesOnlyInScopeUsages(t *testing.T) {
 	src := RefactorSource(code)
 	actual := src.PositionsForSymbolAt(3, 3)
 
-	declPosition := token.Position{"", 15, 2, 5}
-	usePosition  := token.Position{"", 0, 3, 1}
+	declPosition := token.Position{"", 15, 7, 5}
+	usePosition  := token.Position{"", 0, 8, 1}
 	expected := []token.Position {declPosition, usePosition}
 
-	if !assertHasPositions(expected, actual) {
+	if assertHasAnyPositions(expected, actual) {
 		t.Fail()
 	}
 }
 
-func assertHasPositions(expected []token.Position, actual []token.Position) bool {
+
+func assertHasAnyPositions(expected []token.Position, actual []token.Position) bool {
+	found := false
 	for _, ePos := range expected {
-		found := false
 		for _, aPos := range actual {
 			if ePos.Line == aPos.Line && ePos.Column == aPos.Column {
 				found = true
 			}
 		}
-		if !found {
-			return false
-		}
 	}
-	return true
+	return found
 }
