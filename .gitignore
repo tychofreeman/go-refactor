@@ -2,3 +2,4 @@ _obj/
 *.8
 _test
 *.out
+.*.sw[op]
