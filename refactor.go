@@ -6,8 +6,6 @@ import (
 	"./refactor"
 )
 
-
-
 func main() {
 	var row int
 	var col int
@@ -26,10 +24,8 @@ func main() {
 	fmt.Printf("File: %v Row: %v Col: %v\n", file, row, col)
 
 
-	rs := refactor.RefactorSource(file, "")
+	rs := refactor.RefactorFile(file)
 	currName := rs.GetVariableNameAt(row, col)
 
 	fmt.Printf("Rename variable %v to %v\n", currName, name)
 }
-
-

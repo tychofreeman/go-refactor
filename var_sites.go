@@ -12,6 +12,7 @@ type Scope struct {
 	children []*Scope
 	childCount int
 	positions map[string]*vector.Vector
+	decls map[string]token.Position
 }
 
 func NewChildScope(parent *Scope) (child *Scope) {
@@ -25,8 +26,22 @@ func NewChildScope(parent *Scope) (child *Scope) {
 func NewScope() (scope *Scope) {
 	scope = new(Scope)
 	scope.positions = make(map[string]*vector.Vector)
+	scope.decls = make(map[string]token.Position)
 	scope.children = make([]*Scope, 5)
 	return scope
+}
+
+func (scope *Scope) AddDefn(name string, position token.Position) {
+	scope.decls[name] = position
+}
+
+func (scope *Scope) HasDefn(name string) bool {
+	_, ok := scope.decls[name]
+	return ok
+}
+
+func (scope *Scope) GetDefn(name string) token.Position {
+	return scope.decls[name]
 }
 
 func (scope *Scope) AddSite(name string, position token.Position) {
