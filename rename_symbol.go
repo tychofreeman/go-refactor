@@ -36,17 +36,14 @@ func RefactorDecls(stmts interface{}) *Refactor{
 	switch t := stmts.(type) {
 		case []interface{}:
 			for _, stmt := range t {
-				fmt.Printf("Visiting interface %v\n", stmt)
 				ast.Walk(visitor, stmt)
 			}
 		case []ast.Stmt:
 			for _, stmt := range t {
-				fmt.Printf("Visiting statement %v\n", stmt)
 				ast.Walk(visitor, stmt)
 			}
 		case []ast.Decl:
 			for _, stmt := range t {
-				fmt.Printf("Visiting declaration %v\n", stmt)
 				ast.Walk(visitor, stmt)
 			}
 		default:
@@ -61,9 +58,7 @@ func (src *Refactor) GetVariableNameAt(row, column int) string {
 
 func GetVariableNameForScopeAt(scope *Scope, row, column int) string {
 	for varName := range scope.positions {
-		fmt.Printf("found position %v\n", varName)
 		for _, pos := range scope.GetSites(varName) {
-			fmt.Printf("  at %v\n", pos)
 			if identContainsPosition(varName, pos, row, column) {
 				return varName
 			}
@@ -71,8 +66,11 @@ func GetVariableNameForScopeAt(scope *Scope, row, column int) string {
 	}
 	if( scope.children != nil ) {
 		for _, childScope := range scope.children {
-			if childScope != nil {
-				return GetVariableNameForScopeAt(childScope, row, column)
+			if( childScope != nil ) {
+				rtn := GetVariableNameForScopeAt(childScope, row, column)
+				if( rtn != "" ) {
+					return rtn
+				}
 			}
 		}
 	}

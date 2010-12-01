@@ -18,20 +18,47 @@ const (
 	FUNC_C = "func C() {\nvar integerVariable = 1\ngo func(){\nintegerVariable = 2\n}()\nintegerVariable++\n}\n"
 )
 
-func TestIdentifiesOnlyInScopeUsages(t *testing.T) {
+func TestIdentifiesOnlyInScopeUsagesInFuncA(t *testing.T) {
 
 	code := fmt.Sprintf("%v\n%v\n", FUNC_A, FUNC_B)
 	src := RefactorSource(code)
 	src.PositionsForSymbolAt(3, 3)
 	actual := copyChannelToArray(src.gimme)
 
-	declPosition := token.Position{"", 15, 7, 5}
-	usePosition  := token.Position{"", 0, 8, 1}
-	unexpected := []token.Position {declPosition, usePosition}
+	decl1Position := token.Position{"", 0, 7, 5}
+	use1Position := token.Position{"", 0, 8, 1}
+	decl2Position := token.Position{"", 0, 11, 5}
+	use2Position := token.Position{"", 0, 13, 1}
+	use3Position := token.Position{"", 0, 15, 1}
+	unexpected := []token.Position {decl1Position, use1Position, decl2Position, use2Position, use3Position}
 	expected := []token.Position { token.Position{"", 0, 3, 1}, token.Position{"", 0, 2, 5} }
 
 	if assertHasAnyPositions(unexpected, actual) == true {
-		t.Fail()
+		t.Errorf("Contains unexpected positions: %v\n", unexpected)
+	}
+
+	if assertHasAnyPositions(expected, actual) == false {
+		t.Errorf("Returned positions %v instead of %v!", actual, expected)
+	}
+}
+
+func TestIdentifiesOnlyInScopeUsagesInFuncB(t *testing.T) {
+
+	code := fmt.Sprintf("%v\n%v\n", FUNC_A, FUNC_B)
+	src := RefactorSource(code)
+	src.PositionsForSymbolAt(7, 6)
+	actual := copyChannelToArray(src.gimme)
+
+	decl1Position := token.Position{"", 0, 2, 5}
+	use1Position := token.Position{"", 0, 3, 1}
+	decl2Position := token.Position{"", 0, 10, 5}
+	use2Position := token.Position{"", 0, 12, 1}
+	use3Position := token.Position{"", 0, 14, 1}
+	unexpected := []token.Position {decl1Position, use1Position, decl2Position, use2Position, use3Position}
+	expected := []token.Position { token.Position{"", 0, 8, 1}, token.Position{"", 0, 7, 5} }
+
+	if assertHasAnyPositions(unexpected, actual) == true {
+		t.Errorf("Contains unexpected positions: %v\n", unexpected)
 	}
 
 	if assertHasAnyPositions(expected, actual) == false {

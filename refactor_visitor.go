@@ -51,37 +51,22 @@ func (visitor *RefactorVisitor) findDeclaringScope(name string) *RefactorVisitor
 }
 
 func (pw *RefactorVisitor) findIdentifier(node interface{}) (v *RefactorVisitor) {
-	printSpaces(pw)
-	fmt.Printf("Found type %T\n", node)
+	//printSpaces(pw)
+	//fmt.Printf("Found type %T\n", node)
 	_, pw.isStmt = node.(ast.Stmt)
 	switch n := node.(type) {
 		case []ast.Expr:
-			if pw.parent.isStmt && n[0] == pw.parent.lhs[0] {
+			if pw.parent.isStmt && len(n) > 0 && len(pw.parent.lhs) > 0 && n[0] == pw.parent.lhs[0] {
 				pw.amLhs = true
 			}
 		case *ast.AssignStmt:
 			pw.lhs = n.Lhs
 			if n.Tok == token.DEFINE {
-				fmt.Printf("Definition!\n")
 				pw.isDefn = true
 			}
-		case *token.Token:
-			fmt.Printf("Token %v\n", n)
-		case *ast.DeclStmt:
-			fmt.Printf("Declaration: %v\n", n)
-		case []*ast.Ident:
-			for ident := range n {
-				pw.findIdentifier(ident)
-			}
-		case *ast.Type:
-			fmt.Printf("=============TYPE!!===========\n")
-		case *ast.Object:
-			fmt.Printf("============OBJECT!!!===========\n")
 		case *ast.Ident:
 			if pw.enclosingStmtIsDefn() && pw.parent.amLhs {
 				pw.sites.AddDefn(n.String(), n.Pos())
-				printSpaces(pw)
-				fmt.Printf("Identifier %v defined in this stmt!\n", n.String())
 			}
 			pw.sites.AddSite(n.String(), n.Pos())
 			if identContainsPosition(n.String(), n.Pos(), pw.targetColumn, pw.targetLine) {
