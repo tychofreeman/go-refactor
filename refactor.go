@@ -25,7 +25,9 @@ func main() {
 
 
 	rs := refactor.RefactorFile(file)
-	currName := rs.GetVariableNameAt(row, col)
-
+	currName, scope := rs.GetVariableNameAt(row, col)
 	fmt.Printf("Rename variable %v to %v\n", currName, name)
+	for _, site := range scope.GetSites(currName) {
+		fmt.Printf("\t--%v\n", site)
+	}
 }

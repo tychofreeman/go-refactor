@@ -52,29 +52,29 @@ func RefactorDecls(stmts interface{}) *Refactor{
 	return ref
 }
 
-func (src *Refactor) GetVariableNameAt(row, column int) string {
+func (src *Refactor) GetVariableNameAt(row, column int) (string, *Scope) {
 	return GetVariableNameForScopeAt(src.scope, row, column)
 }
 
-func GetVariableNameForScopeAt(scope *Scope, row, column int) string {
+func GetVariableNameForScopeAt(scope *Scope, row, column int) (string, *Scope) {
 	for varName := range scope.positions {
 		for _, pos := range scope.GetSites(varName) {
 			if identContainsPosition(varName, pos, row, column) {
-				return varName
+				return varName, scope
 			}
 		}
 	}
 	if( scope.children != nil ) {
 		for _, childScope := range scope.children {
 			if( childScope != nil ) {
-				rtn := GetVariableNameForScopeAt(childScope, row, column)
-				if( rtn != "" ) {
-					return rtn
+				rtnName, rtnScope := GetVariableNameForScopeAt(childScope, row, column)
+				if( rtnName != "" ) {
+					return rtnName, rtnScope
 				}
 			}
 		}
 	}
-	return ""
+	return "", &Scope{}
 }
 
 func (src *Refactor) PositionsForSymbolAt(row, column int) chan chan token.Position {
