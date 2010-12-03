@@ -8,8 +8,8 @@ import (
 
 func CallScopedGetVariableNameAt(row, col int) string {
 	src := RefactorSource(SIMPLE_DECL)
-
-	return src.GetVariableNameAt(row, col)
+	name, _ := src.GetVariableNameAt(row, col)
+	return name
 }
 
 const (

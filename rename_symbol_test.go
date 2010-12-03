@@ -8,7 +8,8 @@ import (
 func CallTwoLineGetVariableNameAt(row, col int) string {
 	src := RefactorSource(TWO_LINE_DECL)
 
-	return src.GetVariableNameAt(row, col)
+	name, _ := src.GetVariableNameAt(row, col)
+	return name
 }
 
 func TestFindsNameOfVariableDeclStartingAtRowColumn(t *testing.T) {

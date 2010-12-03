@@ -71,3 +71,5 @@ func (scope *Scope) GetSites(name string) (siteArray []token.Position) {
 	}
 	return 
 }
+
+

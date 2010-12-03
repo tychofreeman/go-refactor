@@ -7,7 +7,8 @@ import (
 func CallUsageGetVariableNameAt(row, col int) string {
 	src := RefactorSource(DECL_AND_USE)
 
-	return src.GetVariableNameAt(row, col)
+	name, _ := src.GetVariableNameAt(row, col)
+	return name
 }
 
 func TestFindsNameOfVariableUseAtStartOfUse(t *testing.T) {

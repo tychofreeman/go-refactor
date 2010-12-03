@@ -17,7 +17,8 @@ const (
 func CallSimpleGetVariableNameAt(row, col int) string {
 	src := RefactorSource(SIMPLE_DECL)
 
-	return src.GetVariableNameAt(row, col)
+	name, _ := src.GetVariableNameAt(row, col)
+	return name
 }
 
 func TestFindsNameOfVariableDeclStartingAtPosition(t *testing.T) {
