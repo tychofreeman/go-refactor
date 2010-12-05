@@ -3,3 +3,4 @@ _obj/
 _test
 *.out
 .*.sw[op]
+_testmain.go
