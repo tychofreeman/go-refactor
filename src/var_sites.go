@@ -8,11 +8,11 @@ import (
 )
 
 type Scope struct {
-	parent *Scope
-	children []*Scope
+	parent     *Scope
+	children   []*Scope
 	childCount int
-	positions map[string]*vector.Vector
-	decls map[string]token.Position
+	positions  map[string]*vector.Vector
+	decls      map[string]token.Position
 }
 
 func NewChildScope(parent *Scope) (child *Scope) {
@@ -62,14 +62,13 @@ func (scope *Scope) GetSites(name string) (siteArray []token.Position) {
 		for i := 0; i < vectorLen; i++ {
 			vectorItem := siteVector.At(i)
 			switch site := vectorItem.(type) {
-				case token.Position:
-					siteArray[i] = site
-				default:
-					panic(fmt.Sprintf("Found wrong type in siteVector at index %v - %v", i, reflect.Typeof(site)))
+			case token.Position:
+				siteArray[i] = site
+			default:
+				panic(fmt.Sprintf("Found wrong type in siteVector at index %v - %v", i, reflect.TypeOf(site)))
 			}
 		}
 	}
-	return 
+	return
 }
-
 

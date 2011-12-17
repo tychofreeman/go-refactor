@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/ast"
 	"go/token"
+	"os"
 )
 
 type Refactor struct {
@@ -13,41 +14,54 @@ type Refactor struct {
 }
 
 func RefactorFile(fileName string) *Refactor {
-	file, err := parser.ParseFile(fileName, nil, 0)
+	fileSet := token.NewFileSet()
+	fileInfo, _ := os.Lstat(fileName)
+	fileSet.AddFile(fileName, 0, int(fileInfo.Size))
+	file, err := parser.ParseFile(fileSet, fileName, nil, 0)
 	if err != nil {
 		panic(fmt.Sprintf("Could not parse input. %v", err))
 	}
 	return RefactorDecls(file.Decls)
 }
 
-func RefactorSource(src interface{}) *Refactor {
-	stmts, err := parser.ParseDeclList("", src)
+func NodesLen(ns []ast.Decl) int {
+	return int(ns[0].End())
+}
+
+func stmtsFileSet(contents []ast.Decl) *token.FileSet {
+	return fileSet(NodesLen(contents))
+}
+
+func stringFileSet(contents string) *token.FileSet {
+	return fileSet(len(contents))
+}
+
+func fileSet(contentLength int) *token.FileSet {
+	fileSet := token.NewFileSet()
+	fileSet.AddFile("source", fileSet.Base(), contentLength)
+	return fileSet
+}
+
+func RefactorSource(src string) *Refactor {
+	files := stringFileSet(src)
+	stmts, err := parser.ParseDeclList(files, "", src)
 	if err != nil {
 		panic(fmt.Sprintf("Could not parse input. %v", err))
 	}
-	return RefactorDecls(stmts)
+	return RefactorDeclsInFileSet(stmts, files)
 }
 
-func RefactorDecls(stmts interface{}) *Refactor{
+func RefactorDecls(stmts []ast.Decl) *Refactor{
+	return RefactorDeclsInFileSet(stmts, stmtsFileSet(stmts))
+}
+
+func RefactorDeclsInFileSet(stmts []ast.Decl, files *token.FileSet) *Refactor {
 	ref := new(Refactor)
 	ref.scope = NewScope()
 	ref.gimme = make(chan chan token.Position, 100)
-	visitor := newRefactorVisitor(token.Position{}, ref.scope, ref.gimme, 0, nil)
-	switch t := stmts.(type) {
-		case []interface{}:
-			for _, stmt := range t {
-				ast.Walk(visitor, stmt)
-			}
-		case []ast.Stmt:
-			for _, stmt := range t {
-				ast.Walk(visitor, stmt)
-			}
-		case []ast.Decl:
-			for _, stmt := range t {
-				ast.Walk(visitor, stmt)
-			}
-		default:
-			fmt.Printf("Nope...%T\n", t)
+	visitor := newRefactorVisitor(token.Position{}, ref.scope, ref.gimme, 0, nil, files)
+	for _, stmt := range stmts {
+		ast.Walk(visitor, stmt)
 	}
 	return ref
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"./refactor"
+	"refactor"
 )
 
 func main() {
