@@ -48,6 +48,13 @@ func (v *RenameVisitor) positions(node ast.Node) string {
 	return fmt.Sprintf("(%v %v,%v-%v,%v)", pp.Filename, pp.Line, pp.Column, pe.Line, pe.Column)
 }
 
+func (v *RenameVisitor) Positions() string {
+	if v.node == nil {
+		return ""
+	}
+	return v.positions(v.node)
+}
+
 func (v *RenameVisitor) Visit(node ast.Node) ast.Visitor {
 	if v.node != nil {
 		fmt.Printf("Finishing visit on node %v\n", node)
@@ -113,15 +120,6 @@ func (v *RenameVisitor) AddDecl(decl *ast.Decl) {
 			v.parent.AddDecl(decl)
 		}
 	}
-}
-
-func (v *RenameVisitor) Positions() string {
-	if v.node == nil {
-		return ""
-	}
-	pp := v.fs.Position(v.node.Pos())
-	pe := v.fs.Position(v.node.End())
-	return fmt.Sprintf("%v (%v,%v - %v,%v)", pp.Filename, pp.Line, pp.Column, pe.Line, pe.Column)
 }
 
 func (v *RenameVisitor) FinishVisit() ast.Visitor {
