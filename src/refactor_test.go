@@ -270,13 +270,13 @@ func checkBufEqString(t *testing.T, buf *bytes.Buffer, expected string) {
 	}
 }
 
-func testInputEqualsOutputWithNoTransform(t *testing.T) {
+func TestInputEqualsOutputWithNoTransform(t *testing.T) {
 	expr := "j + 10"
 	rw := ParseExprAndPrint(expr)
 	checkBufEqString(t, rw, expr)
 }
 
-func testCanPrintMyOwnAst(t *testing.T) {
+func TestCanPrintMyOwnAst(t *testing.T) {
 	expr := new(ast.Ellipsis)
 	fs := token.NewFileSet()
 	expr.Ellipsis = 10
@@ -293,31 +293,31 @@ func verifyRename(t *testing.T, input, expected, oldName, newName string, row, c
 	checkBufEqString(t, buf, expectedBuf.String())
 }
 
-func testCanRenameVariableInExpr(t *testing.T) {
+func TestCanRenameVariableInExpr(t *testing.T) {
 	input, oldName, newName, row, col := "{\nsomeName + 10\n}", "someName", "renamed", 2, 1
 	expected := "{\nrenamed + 10}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
-func testCanRenameVariableInStmts(t *testing.T) {
+func TestCanRenameVariableInStmts(t *testing.T) {
 	input, oldName, newName, row, col := "{\nsomeName := 1\nplusTwo := someName + 2\n}", "someName", "otherName", 2, 1
 	expected := "{\notherName := 1\nplusTwo := otherName + 2\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
-func testCanRenameVariableOnType(t *testing.T) {
+func TestCanRenameVariableOnType(t *testing.T) {
 	input, oldName, newName, row, col := "type A struct {\nmyField int\n}", "myField", "newName", 2, 1
 	expected := "type A struct {\nnewName int\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
-func testOnlyRenamesVarInScope(t *testing.T) {
+func TestOnlyRenamesVarInScope(t *testing.T) {
 	input, oldName, newName, row, col := "{\n{\na := 0\na++\n}\n{\na := 2\na--\n}\n}", "a", "b", 3, 1
 	expected := "{\n{\nb := 0\nb++\n}\n{\na := 2\na--\n}\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
-func testCanRenameFields(t *testing.T) {
+func TestCanRenameFields(t *testing.T) {
 	input, oldName, newName, row, col := "type A struct {\n fld int\n}", "fld", "newFld", 2, 2
 	expected := "type A struct {\n newFld int\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
@@ -356,7 +356,7 @@ func TestCanRenameParameter(t *testing.T) {
 }
 
 // Ignore this one until the renameParam is working
-func testCanLimitRenameToFieldInExpressions(t *testing.T) {
+func TestCanLimitRenameToFieldInExpressions(t *testing.T) {
 	input := "package main\ntype A struct {\n fld int\n}\nfunc (v A) Do(fld int) {\nv.fld += fld\n}"
 	oldName, newName := "fld", "newFld"
 	row, col := 6, 3
