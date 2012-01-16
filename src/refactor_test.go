@@ -9,7 +9,7 @@ import (
 	"go/printer"
 	"os"
 	"bytes"
-	"reflect"
+//	"reflect"
 )
 
 func Rename(expr, oldName, newName string) (ast.Node, *token.FileSet) {
@@ -20,6 +20,7 @@ func RenameAt(expr, oldName, newName string, row, col int) (ast.Node, *token.Fil
 	contents, fs, _ := ParseExpr(expr)
 	visitor := NewRenameVisitor(fs, oldName, newName, row, col)
 	ast.Walk(visitor, contents)
+	visitor.FinishVisit()
 	return contents, fs
 }
 
@@ -75,6 +76,8 @@ func (v *RenameVisitor) AddIdentToScope(i *ast.Ident) {
 
 func (v *RenameVisitor) AddIdent(i *ast.Ident) {
 	switch n := v.node.(type) {
+	case nil:
+		v.AddIdentToScope(i)
 	case *ast.FuncDecl:
 		v.AddIdentToScope(i)
 	case *ast.BlockStmt:
@@ -97,6 +100,8 @@ func contains(coll []string, target string) bool {
 
 func (v *RenameVisitor) AddDecl(name string) {
 	switch n := v.node.(type) {
+	case nil:
+		v.decls = append(v.decls, name)
 	case *ast.FuncDecl:
 		v.decls = append(v.decls, name)
 	case *ast.BlockStmt:
@@ -113,7 +118,7 @@ func positionMatches(row, col int, pos token.Position) bool {
 }
 
 func (v *RenameVisitor) StartVisit() {
-	fmt.Printf("%s<%v>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
+	//fmt.Printf("%s<%v>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
 	switch n := v.node.(type) {
 	case *ast.Field:
 		for _, i := range n.Names {
@@ -136,7 +141,7 @@ func (v *RenameVisitor) StartVisit() {
 }
 
 func (v *RenameVisitor) PerformRename() {
-	if !contains(v.decls, v.origName) && v.doRename {
+	if v.parent != nil && !contains(v.decls, v.origName) && v.doRename {
 		v.parent.doRename = v.doRename
 	} else if v.parent == nil || v.doRename {
 		for _, i := range v.idents {
@@ -148,8 +153,14 @@ func (v *RenameVisitor) PerformRename() {
 }
 
 func (v *RenameVisitor) FinishVisit() {
-	fmt.Printf("%s</%s>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
+	//fmt.Printf("%s</%s>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
 	switch n := v.node.(type) {
+	case nil:
+		v.PerformRename()
+	case *ast.File:
+		v.PerformRename()
+	case *ast.Package:
+		v.PerformRename()
 	case *ast.FuncDecl:
 		v.PerformRename()
 	case *ast.BlockStmt:
