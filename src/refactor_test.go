@@ -7,9 +7,9 @@ import (
 	"go/token"
 	"fmt"
 	"go/printer"
-//	"bufio"
 	"os"
 	"bytes"
+	"reflect"
 )
 
 func Rename(expr, oldName, newName string) (ast.Node, *token.FileSet) {
@@ -27,11 +27,11 @@ type RenameVisitor struct {
 	fs *token.FileSet
 	origName, newName string
 	row, col int
-	idents map[ast.Node][]*ast.Ident
-	decls map[ast.Node][]*ast.Decl
+	idents []*ast.Ident
+	decls []string
 	parent *RenameVisitor
 	node ast.Node
-	doRename map[ast.Node]bool
+	doRename bool
 	tabcount int
 }
 
@@ -56,100 +56,113 @@ func (v *RenameVisitor) Positions() string {
 }
 
 func (v *RenameVisitor) Visit(node ast.Node) ast.Visitor {
-	if v.node != nil {
-		fmt.Printf("Finishing visit on node %v\n", node)
-		v.FinishVisit()
-	}
-	v.node = node
 	if node != nil {
-		return v.StartVisit(node)
+		child :=  NewParentedRenameVisitor(v, node)
+		child.StartVisit()
+		return child
 	}
-	return v
-}
-
-func (v *RenameVisitor) StartVisit(node ast.Node) ast.Visitor {
-	v.node = node
-	switch n := node.(type) {
-	default:
-		return NewParentedRenameVisitor(v.fs, v.origName, v.newName, v.row, v.col, v)
-	case *ast.Ident:
-		v.parent.AddIdent(n)
-		pos := v.fs.Position(node.Pos())
-		if v.row == pos.Line && v.col == pos.Column && n.Name == v.origName {
-			v.parent.ShouldDoRename()
-		}
-	}
-	return v
-}
-
-func (v *RenameVisitor) ShouldDoRename() {
-	switch v.node.(type) {
-	case *ast.BlockStmt:
-		v.doRename[v.node] = true
-		fmt.Printf("Should Do Rename for %s on node at %v! %v\n", v.origName, v.positions(v.node), v.doRename[v.node])
-		break
-	default:
-		v.parent.ShouldDoRename()
-	}
-}
-
-func (v *RenameVisitor) AddIdent(ident *ast.Ident) {
-	switch v.node.(type) {
-	case *ast.BlockStmt:
-		idents, found := v.idents[v.node]
-		if !found {
-			idents = make([]*ast.Ident, 0)
-			v.idents[v.node] = idents
-		}
-		v.idents[v.node] = append(idents, ident)
-		break
-	default:
-		if v.parent != nil {
-			v.parent.AddIdent(ident)
-		}
-	}
-}
-
-func (v *RenameVisitor) AddDecl(decl *ast.Decl) {
-	switch v.node.(type) {
-	case *ast.BlockStmt:
-		if v.decls[v.node] == nil
-		v.decls = append(v.decls, decl)
-	defaults:
-		if v.parent!= nil {
-			v.parent.AddDecl(decl)
-		}
-	}
-}
-
-func (v *RenameVisitor) FinishVisit() ast.Visitor {
-	fmt.Printf("Do Rename? for %s on node at %v? %v\n", v.origName, v.positions(v.node), v.doRename[v.node])
-	if v.doRename[v.node] {
-		for _, node := range v.idents[v.node] {
-			if node.Name == v.origName {
-				node.Name = v.newName
-			}
-		}
-	}
+	v.FinishVisit()
 	return nil
 }
 
-func NewRenameVisitor(fs *token.FileSet, origName, newName string, row, col int) *RenameVisitor {
-	return NewParentedRenameVisitor(fs, origName, newName, row, col, nil)
+func (v *RenameVisitor) AddIdent(i *ast.Ident) {
+	switch n := v.node.(type) {
+	case *ast.BlockStmt:
+		if v.parent == nil || contains(v.decls, i.Name) {
+			v.idents = append(v.idents, i)
+		} else {
+			v.parent.AddIdent(i)
+		}
+	default:
+		if v.parent != nil {
+			v.parent.AddIdent(i)
+		}
+	}
 }
 
-func NewParentedRenameVisitor(fs *token.FileSet, origName, newName string, row, col int, parent *RenameVisitor) *RenameVisitor {
+func contains(coll []string, target string) bool {
+	for _, i := range coll {
+		if i == target {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *RenameVisitor) AddDecl(name string) {
+	switch n := v.node.(type) {
+	case *ast.BlockStmt:
+		v.decls = append(v.decls, name)
+	default:
+		if v.parent != nil {
+			v.parent.AddDecl(name)
+		}
+	}
+}
+
+func positionMatches(row, col int, pos token.Position) bool {
+	return pos.Line == row && pos.Column == col
+}
+
+func (v *RenameVisitor) StartVisit() {
+	fmt.Printf("%s<%v>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
+	switch n := v.node.(type) {
+	case *ast.ValueSpec:
+		for _, i := range n.Names {
+			v.parent.AddDecl(i.Name)
+			v.parent.AddIdent(i)
+		}
+	case *ast.Ident:
+		p := n.Pos()
+		pos := v.fs.Position(p)
+		if positionMatches(v.row, v.col, pos) && n.Name == v.origName {
+			v.doRename = true
+		}
+		v.parent.AddIdent(n)
+	}
+}
+
+func (v *RenameVisitor) FinishVisit() {
+	fmt.Printf("%s</%s>\n", tabs(v.tabcount), reflect.TypeOf(v.node))
+	switch n := v.node.(type) {
+	case *ast.BlockStmt:
+		if !contains(v.decls, v.origName) {
+			v.parent.doRename = v.doRename
+		} else if v.doRename {
+			for _, i := range v.idents {
+				if i.Name == v.origName {
+					i.Name = v.newName
+				}
+			}
+		}
+	default:
+		if v.doRename {
+			v.parent.doRename = v.doRename
+		}
+	}
+}
+
+func NewRenameVisitor(fs *token.FileSet, origName, newName string, row, col int) *RenameVisitor {
 	v := new(RenameVisitor)
 	v.fs = fs
 	v.origName = origName
 	v.newName = newName
-	v.row, v.col = row, col
-	v.parent = parent
-	v.idents = make(map[ast.Node][]*ast.Ident, 0)
-	if parent != nil {
-		v.tabcount = v.parent.tabcount + 1
-	}
-	v.doRename = make(map[ast.Node]bool)
+	v.row = row
+	v.col = col
+	return v
+}
+
+func NewParentedRenameVisitor(p *RenameVisitor, node ast.Node) *RenameVisitor {
+	v := new(RenameVisitor)
+	v.fs = p.fs
+	v.origName = p.origName
+	v.newName = p.newName
+	v.row, v.col = p.row, p.col
+	v.parent = p
+	v.idents = make([]*ast.Ident, 0)
+	v.decls = make([]string, 0)
+	v.tabcount = p.tabcount + 1
+	v.node = node
 	return v
 }
 
@@ -250,27 +263,27 @@ func verifyRename(t *testing.T, input, expected, oldName, newName string, row, c
 	checkBufEqString(t, buf, expectedBuf.String())
 }
 
-func testCanRenameVariableInExpr(t *testing.T) {
-	input, oldName, newName, row, col := "{\nsomeName + 10\n}", "someName", "renamed", -1, -1
+func TestCanRenameVariableInExpr(t *testing.T) {
+	input, oldName, newName, row, col := "{\nsomeName + 10\n}", "someName", "renamed", 2, 1
 	expected := "{\nrenamed + 10}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
 func TestCanRenameVariableInStmts(t *testing.T) {
-	input, oldName, newName, row, col := "{\nsomeName := 1\nplusTwo := someName + 2\n}", "someName", "otherName", -1, -1
+	input, oldName, newName, row, col := "{\nsomeName := 1\nplusTwo := someName + 2\n}", "someName", "otherName", 2, 1
 	expected := "{\notherName := 1\nplusTwo := otherName + 2\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
 func TestCanRenameVariableOnType(t *testing.T) {
-	input, oldName, newName, row, col := "type A struct {\nmyField int\n}", "myField", "newName", -1, -1
+	input, oldName, newName, row, col := "type A struct {\nmyField int\n}", "myField", "newName", 2, 1
 	expected := "type A struct {\nnewName int\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
 func TestOnlyRenamesVarInScope(t *testing.T) {
-	input, oldName, newName, row, col := "{\n{\na := 0\na++\n}\n{\na := 2\na--\n}}", "a", "b", 3, 1
-	expected := "{{\nb := 0\nb++\n}\n{\na := 2\na--\n}}"
+	input, oldName, newName, row, col := "{\n{\na := 0\na++\n}\n{\na := 2\na--\n}\n}", "a", "b", 3, 1
+	expected := "{\n{\nb := 0\nb++\n}\n{\na := 2\na--\n}\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
@@ -283,7 +296,7 @@ func TestCanRenameFields(t *testing.T) {
 func TestCanRenameFieldsInExpressions(t *testing.T) {
 	input := "{\nv.fld += 10\n}"
 	oldName, newName := "fld", "newFld"
-	row, col := 1, 3
+	row, col := 2, 3
 	expected := "{\nv.newFld += 10\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
@@ -291,8 +304,16 @@ func TestCanRenameFieldsInExpressions(t *testing.T) {
 func TestCanRenamePreviousVars(t *testing.T) {
 	input := "{\nfld += 5\nfld += 10\n}"
 	oldName, newName := "fld", "newFld"
-	row, col := 2, 1
+	row, col := 3, 1
 	expected := "{\nnewFld += 5\nnewFld += 10\n}"
+	verifyRename(t, input, expected, oldName, newName, row, col)
+}
+
+func TestRenamesAllInstancesInsideDefiningScope(t *testing.T) {
+	input := "{\nvar fld int = 0\n{\nfld += 5\n}\n}"
+	oldName, newName := "fld", "newFld"
+	row, col := 4, 1
+	expected := "{\nvar newFld int = 0\n{\nnewFld += 5\n}\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
@@ -305,7 +326,7 @@ func TestCanRenameParameter(t *testing.T) {
 }
 
 // Ignore this one until the renameParam is working
-func testCanLimitRenameToFieldInExpressions(t *testing.T) {
+func TestCanLimitRenameToFieldInExpressions(t *testing.T) {
 	input := "package main\ntype A struct {\n fld int\n}\nfunc (v A) Do(fld int) {\nv.fld += fld\n}"
 	oldName, newName := "fld", "newFld"
 	row, col := 6, 3
