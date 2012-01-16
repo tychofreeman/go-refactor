@@ -312,8 +312,8 @@ func TestCanRenameVariableOnType(t *testing.T) {
 }
 
 func TestOnlyRenamesVarInScope(t *testing.T) {
-	input, oldName, newName, row, col := "{\n{\na := 0\na++\n}\n{\na := 2\na--\n}\n}", "a", "b", 3, 1
-	expected := "{\n{\nb := 0\nb++\n}\n{\na := 2\na--\n}\n}"
+	input, oldName, newName, row, col := "{\n{\nvar a int = 0\na++\n}\n{\nvar a int = 2\na--\n}\n}", "a", "b", 3, 1
+	expected := "{\n{\nvar b int = 0\nb++\n}\n{\nvar a int = 2\na--\n}\n}"
 	verifyRename(t, input, expected, oldName, newName, row, col)
 }
 
