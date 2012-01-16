@@ -23,7 +23,6 @@ func main() {
 
 	fmt.Printf("File: %v Row: %v Col: %v\n", file, row, col)
 
-
 	rs := refactor.RefactorFile(file)
 	currName, scope := rs.GetVariableNameAt(row, col)
 	fmt.Printf("Rename variable %v to %v\n", currName, name)

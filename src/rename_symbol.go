@@ -16,7 +16,7 @@ type Refactor struct {
 func RefactorFile(fileName string) *Refactor {
 	fileSet := token.NewFileSet()
 	fileInfo, _ := os.Lstat(fileName)
-	fileSet.AddFile(fileName, 0, int(fileInfo.Size))
+	fileSet.AddFile(fileName, fileSet.Base(), int(fileInfo.Size))
 	file, err := parser.ParseFile(fileSet, fileName, nil, 0)
 	if err != nil {
 		panic(fmt.Sprintf("Could not parse input. %v", err))

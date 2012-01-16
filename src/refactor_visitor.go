@@ -71,6 +71,7 @@ func (pw *RefactorVisitor) findIdentifier(node ast.Node) (v *RefactorVisitor) {
 			if identContainsPosition(n.String(), pw.fileSet.Position(n.Pos()), pw.targetColumn, pw.targetLine) {
 				declaringScope := pw.findDeclaringScope(n.String())
 				if declaringScope == nil {
+					break
 					panic(fmt.Sprintf("Could not find declaring scope for %v in %v\n", n.String(), pw))
 				}
 				for scope := pw; 
