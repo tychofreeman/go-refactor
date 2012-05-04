@@ -7,24 +7,41 @@ import (
 	"go/token"
 	"go/printer"
 	"os"
-	"fmt"
 )
 
-func ExtractFnFromExpr(name string, expr ast.Expr) (*ast.CallExpr, *ast.FuncDecl) {
-	rtnType := "unknown"
+func basicLitTypeString(x *ast.BasicLit) string {
+	if x.Kind == token.STRING {
+		return "string"
+	} else if x.Kind == token.INT {
+		return "int"
+	} else if x.Kind == token.FLOAT {
+		return "float"
+	}
+	return "unknown"
+}
+
+func typeString(expr ast.Node) string {
 	switch x := expr.(type) {
 		case *ast.BasicLit:
-			if x.Kind == token.STRING {
-				rtnType = "string"
-			} else if x.Kind == token.INT {
-				rtnType = "int"
-			}
-			break;
+			return basicLitTypeString(x)
+		case *ast.AssignStmt:
+			return typeString(x.Rhs[0])
+		case *ast.CompositeLit:
+			return typeString(x.Type)
 		case *ast.Ident:
-			fmt.Printf("--------------------------\nIdent: %v\n", x)
-			rtnType = x.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CompositeLit).Type.(*ast.Ident).Name
-
+			if x.Obj != nil && x.Obj.Decl != nil {
+				return typeString(x.Obj.Decl.(ast.Node))
+			} else {
+				return x.Name
+			}
+		case *ast.BinaryExpr:
+			return typeString(x.X)
 	}
+	return "unknown"
+}
+
+func ExtractFnFromExpr(name string, expr ast.Expr) (*ast.CallExpr, *ast.FuncDecl) {
+	rtnType := typeString(expr)
 	return &ast.CallExpr{
 		Fun: &ast.Ident{Name: name},
 	}, 
@@ -139,5 +156,83 @@ func TestExtractsFuncFromIdent(t *testing.T) {
 	_, fn := ExtractFnFromExpr("t", root)
 	if fn.Type.Results.List[0].Type.(*ast.Ident).Name != "A" {
 		t.Error("Expected 'A', but was ", fn.Type.Results.List[0].Type)
+	}
+}
+
+func StandAloneLiteral(value string, kind token.Token) (ast.Expr) {
+	return &ast.BasicLit {
+		Kind: kind,
+		Value: value,
+	}
+}
+func StandAloneIdent(name, value string, kind token.Token) (ast.Expr) {
+	return  &ast.Ident {
+				Name: name,
+				Obj: &ast.Object {
+					Kind: ast.Var,
+					Name: name,
+					Decl: &ast.AssignStmt {
+						Tok: token.DEFINE,
+						Rhs: []ast.Expr {
+							&ast.BasicLit {
+								Kind: kind,
+								Value: value,
+							},
+						},
+					},
+				},
+			}
+}
+
+func TestExtractsFuncFromIntAddExpr(t *testing.T) {
+	root := &ast.BinaryExpr {
+			X: StandAloneLiteral("1", token.INT),
+			Op: token.ADD,
+			Y: StandAloneLiteral("2", token.INT),
+	}
+
+	_, fn := ExtractFnFromExpr("t", root)
+	if fn.Type.Results.List[0].Type.(*ast.Ident).Name != "int" {
+		t.Errorf("Expected int, but was %v", fn.Type.Results.List[0].Type.(*ast.Ident).Name)
+	}
+}
+
+func TestExtractsFuncFromDoubleAddExpr(t *testing.T) {
+	root := &ast.BinaryExpr {
+			X: StandAloneLiteral("1.0", token.FLOAT),
+			Op: token.ADD,
+			Y: StandAloneLiteral("2.0", token.FLOAT),
+	}
+
+	_, fn := ExtractFnFromExpr("t", root)
+	if fn.Type.Results.List[0].Type.(*ast.Ident).Name != "float" {
+		t.Errorf("Expected float, but was %v", fn.Type.Results.List[0].Type.(*ast.Ident).Name)
+	}
+}
+
+func TestExtractsFuncFromDoubleAddIdentExpr(t *testing.T) {
+	root := &ast.BinaryExpr {
+		X: StandAloneIdent("a", "1", token.FLOAT),
+		Op: token.ADD,
+		Y: StandAloneIdent("b", "2", token.FLOAT),
+	}
+
+	_, fn := ExtractFnFromExpr("t", root)
+	if fn.Type.Results.List[0].Type.(*ast.Ident).Name != "float" {
+		t.Errorf("Expected float, but was %v", fn.Type.Results.List[0].Type.(*ast.Ident).Name)
+	}
+}
+
+func TestExtractsFuncFromFuncLit(t *testing.T) {
+	root := &ast.FuncLit {
+		Type: &ast.FuncType { 
+			Params: &ast.FieldList {},
+			Results: &ast.FieldList {},
+		},
+	}
+
+	_, fn := ExtractFnFromExpr("t", root)
+	if fn.Type.Results.List[0].Type.(*ast.FuncType) != root.Type {
+		t.Errorf("Expected function, but was %v", fn.Type.Results.List[0].Type)
 	}
 }
