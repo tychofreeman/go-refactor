@@ -9,19 +9,24 @@ import (
 	"os"
 )
 
-func basicLitTypeString(x *ast.BasicLit) string {
+func basicLitTypeString(x *ast.BasicLit) ast.Expr {
+	name := "unknown"
 	if x.Kind == token.STRING {
-		return "string"
+		name = "string"
 	} else if x.Kind == token.INT {
-		return "int"
+		name = "int"
 	} else if x.Kind == token.FLOAT {
-		return "float"
+		name = "float"
 	}
-	return "unknown"
+	return &ast.Ident {
+		Name: name,
+	}
 }
 
-func typeString(expr ast.Node) string {
+func typeString(expr ast.Node) ast.Expr {
 	switch x := expr.(type) {
+		case *ast.FuncLit:
+			return x.Type
 		case *ast.BasicLit:
 			return basicLitTypeString(x)
 		case *ast.AssignStmt:
@@ -32,12 +37,28 @@ func typeString(expr ast.Node) string {
 			if x.Obj != nil && x.Obj.Decl != nil {
 				return typeString(x.Obj.Decl.(ast.Node))
 			} else {
-				return x.Name
+				return &ast.Ident { Name: x.Name }
 			}
 		case *ast.BinaryExpr:
 			return typeString(x.X)
 	}
-	return "unknown"
+	return nil
+}
+
+func ExtractFnFromStmt(name string, stmt ast.Stmt) (ast.Stmt, *ast.FuncDecl) {
+    return &ast.AssignStmt{}, 
+        &ast.FuncDecl{
+            Type: &ast.FuncType {
+                Params: nil,
+                Results: &ast.FieldList {
+                    List: []*ast.Field {
+                        &ast.Field {
+                            Type: stmt.(*ast.DeclStmt).Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type,
+                        },
+                    },
+                },
+            },
+        }
 }
 
 func ExtractFnFromExpr(name string, expr ast.Expr) (*ast.CallExpr, *ast.FuncDecl) {
@@ -60,9 +81,7 @@ func ExtractFnFromExpr(name string, expr ast.Expr) (*ast.CallExpr, *ast.FuncDecl
 			Results: &ast.FieldList{
 				List: []*ast.Field{
 					&ast.Field{
-						Type: &ast.Ident {
-							Name: rtnType,
-						},
+						Type: rtnType, 
 					},
 				},
 			},
@@ -165,7 +184,7 @@ func StandAloneLiteral(value string, kind token.Token) (ast.Expr) {
 		Value: value,
 	}
 }
-func StandAloneIdent(name, value string, kind token.Token) (ast.Expr) {
+func StandAloneIdent(name, value string, kind token.Token) (*ast.Ident) {
 	return  &ast.Ident {
 				Name: name,
 				Obj: &ast.Object {
@@ -233,6 +252,27 @@ func TestExtractsFuncFromFuncLit(t *testing.T) {
 
 	_, fn := ExtractFnFromExpr("t", root)
 	if fn.Type.Results.List[0].Type.(*ast.FuncType) != root.Type {
+		t.Errorf("Expected function, but was %v", fn.Type.Results.List[0].Type)
+	}
+}
+
+func TestExtractFuncFromDecl(t *testing.T) {
+    ident := StandAloneIdent("a", "1", token.INT)
+	root := &ast.DeclStmt{
+        Decl: &ast.GenDecl {
+            Tok: token.VAR,
+            Specs: []ast.Spec {
+                &ast.ValueSpec {
+                    Names: []*ast.Ident { ident },
+                    Type: ident.Obj.Decl.(*ast.AssignStmt).Rhs[0],
+                    Values: []ast.Expr { StandAloneLiteral("2", token.INT) },
+                },
+            },
+        },
+	}
+
+	_, fn := ExtractFnFromStmt("t", root)
+	if fn.Type.Results.List[0].Type.(*ast.BasicLit) == nil {
 		t.Errorf("Expected function, but was %v", fn.Type.Results.List[0].Type)
 	}
 }
